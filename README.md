@@ -112,4 +112,67 @@ To deploy the smart contract, please follow these steps:
 ## **Usage**
 
 The contract is designed to be used in conjunction with a user interface, such as a web application. When a user performs an action, the user interface should call the corresponding function on the smart contract.
-# Sui-staking
+
+# Sui 质押合约
+
+## 部署信息
+
+合约已部署到 Sui Testnet，主要配置信息存储在 `config.json` 文件中。
+
+### 重要对象
+
+1. 管理员对象
+   - AdminCap: 用于管理质押参数和奖励参数
+   - UpgradeCap: 用于升级合约
+   - TreasuryCap: 用于铸造 FARM 代币
+
+2. 共享对象
+   - Treasury: 管理质押资金
+   - UserState: 处理用户质押操作
+   - RewardState: 处理奖励分发
+
+### 使用说明
+
+1. 管理员操作
+   ```bash
+   # 设置质押参数
+   sui client call --package $PACKAGE_ID --module vault --function set_staking_params \
+       --args $ADMIN_CAP $TREASURY $PARAM1 $PARAM2 \
+       --gas-budget 10000000
+
+   # 铸造 FARM 代币
+   sui client call --package $PACKAGE_ID --module farm --function mint \
+       --args $TREASURY_CAP $AMOUNT $RECEIVER \
+       --gas-budget 10000000
+   ```
+
+2. 用户操作
+   ```bash
+   # 质押
+   sui client call --package $PACKAGE_ID --module vault --function stake \
+       --args $USER_STATE $TREASURY $COIN_TO_STAKE \
+       --gas-budget 10000000
+
+   # 解除质押
+   sui client call --package $PACKAGE_ID --module vault --function unstake \
+       --args $USER_STATE $TREASURY $AMOUNT \
+       --gas-budget 10000000
+
+   # 领取奖励
+   sui client call --package $PACKAGE_ID --module vault --function claim_reward \
+       --args $USER_STATE $REWARD_STATE \
+       --gas-budget 10000000
+   ```
+
+### 安全建议
+
+1. 管理员权限对象应转移到多重签名钱包或安全的冷钱包中
+2. 定期检查共享对象状态
+3. 重要操作前在测试网验证
+4. 保持配置文件的安全，不要将其提交到公共仓库
+
+## 网络信息
+
+- 网络：Testnet
+- Chain ID：4c78adac
+- 合约地址：0xd889a1160ab43f49907dcc65c6c45204641b362fb8ebf698d3a2c3d916bc5e19

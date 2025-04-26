@@ -4,13 +4,14 @@ module staking_protocol::vault {
     use sui::tx_context::{Self, TxContext}; 
     use sui::transfer;
     use sui::vec_map::{Self, VecMap};
-    use sui::math;
+    // use sui::math;
     use sui::clock::{Self, Clock};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use sui::coin::{Self, Coin};
     use sui::event;
     use staking_protocol::farm::{FARM};
+    use std::u64;
 
     /* ========== OBJECTS ========== */
 
@@ -168,7 +169,7 @@ module staking_protocol::vault {
     public entry fun withdraw(userState: &mut UserState, rewardState: &mut RewardState, treasury: &mut Treasury, amount: u64, clock: &Clock, ctx: &mut TxContext) {
         
         let account = tx_context::sender(ctx);
-        let balanceOf_account_imut = vec_map::get(&mut userState.balanceOf, &account);
+        let balanceOf_account_imut = vec_map::get(&userState.balanceOf, &account);
         let totalStakedSupply = balance::value(&treasury.stakedCoinsTreasury);
 
         // Check if the user has staked tokens
@@ -212,7 +213,7 @@ module staking_protocol::vault {
         assert!(userHasPriorStake, ENoPriorTokenStake);
 
         // Check if the user has rewards to claim
-        let rewards_account_imut = vec_map::get(&mut userState.rewards, &account);
+        let rewards_account_imut = vec_map::get(&userState.rewards, &account);
         assert!(*rewards_account_imut > 0, ENoRewardsToClaim);
 
         // Update user and reward state parameters 
@@ -306,7 +307,7 @@ module staking_protocol::vault {
         userState.rewardPerTokenStored = rewardPerToken(totalStakedSupply, userState, rewardState, clock);
 
         // Update the Last Updated Time
-        rewardState.updatedAt = math::min(clock::timestamp_ms(clock), rewardState.finishAt); // lastTimeRewardApplicable
+        rewardState.updatedAt = u64::min(clock::timestamp_ms(clock), rewardState.finishAt); // lastTimeRewardApplicable
 
         if (account != @0x0){
             // Update the user's rewards earned
@@ -336,7 +337,7 @@ module staking_protocol::vault {
         let balanceOf_account = (*vec_map::get(&userState.balanceOf, &account) as u256);
         let userRewardPerTokenPaid_account = (*vec_map::get(&userState.userRewardPerTokenPaid, &account) as u256);
         let rewards_account = (*vec_map::get(&userState.rewards, &account) as u256);
-        let token_decimals = (math::pow(10, 9) as u256);
+        let token_decimals = ((u64::pow(10, 9) as u256));
 
         // Update the rewards earned
         let rewards_earned  = ((balanceOf_account * ((rewardPerToken(totalStakedSupply, userState, rewardState, clock) as u256) - userRewardPerTokenPaid_account)) / token_decimals) + rewards_account;
@@ -359,8 +360,8 @@ module staking_protocol::vault {
             return userState.rewardPerTokenStored
         };
 
-        let token_decimals = (math::pow(10, 9) as u256);
-        let lastTimeRewardApplicable = (math::min(clock::timestamp_ms(clock), rewardState.finishAt) as u256);
+        let token_decimals = ((u64::pow(10, 9) as u256));
+        let lastTimeRewardApplicable = ((u64::min(clock::timestamp_ms(clock), rewardState.finishAt) as u256));
 
         // Typecast to u256 to avoid arithmetic overflow
         let computedRewardPerToken = (userState.rewardPerTokenStored as u256) + ((rewardState.rewardRate as u256) * (lastTimeRewardApplicable - (rewardState.updatedAt as u256)) * token_decimals)/ (totalStakedSupply as u256);

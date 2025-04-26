@@ -1,0 +1,20 @@
+{
+    "package_id": "0xd889a1160ab43f49907dcc65c6c45204641b362fb8ebf698d3a2c3d916bc5e19",
+    "admin": {
+        "admin_cap": "0x4443999a23280196c813bf52d317d1f84d175a97cf5d2aee3896dc8e04c6113a",
+        "upgrade_cap": "0x23c4bf88a54820ce14ac40fbc3927510fc5375e33b9ee2fdfd4ca8c70663edb5",
+        "treasury_cap": "0x943cf23bf88f9190d760027181c2670c1d67d60f161b0a3e70e5839ecd7058b7"
+    },
+    "shared_objects": {
+        "treasury": "0xaf2486a36ba954f20ac2214ecb7787c3d37c43022a976225406ad3b58aa3d92b",
+        "user_state": "0x5a1a94bce876bd4d6906b89d841981222ea80b20481a621bbe0263d004403a26",
+        "reward_state": "0x6e3ec086b184bdd51c094b7e5dd47bbfaeba71b9e4e94c16b6bf6f76eefb7342"
+    },
+    "tokens": {
+        "farm_metadata": "0x56dfe68a374225e6e17ed8622c25535f5feae12caf5c4a6b4a256b4978d33c25"
+    },
+    "network": {
+        "name": "testnet",
+        "chain_id": "4c78adac"
+    }
+} 
