@@ -3,6 +3,7 @@ import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from '@
 import { useContract } from '../hooks/useContract';
 import { formatUnits, parseUnits } from '../utils/format';
 import { DECIMALS, ERROR_MESSAGES, USER_STATE_ID, REWARD_STATE_ID } from '../lib/constants';
+import { TransactionHistory } from './TransactionHistory';
 
 export function Staking() {
     const account = useCurrentAccount();
@@ -10,6 +11,7 @@ export function Staking() {
     const { mutate: signAndExecute } = useSignAndExecuteTransaction();
     
     const [stakeAmount, setStakeAmount] = useState('');
+    const [mintAmount, setMintAmount] = useState('');
     const [userStakeInfo, setUserStakeInfo] = useState<any>(null);
     const [poolInfo, setPoolInfo] = useState<any>({
         id: USER_STATE_ID
@@ -143,6 +145,36 @@ export function Staking() {
         }
     };
 
+    // 铸造代币
+    const handleMint = async () => {
+        if (!account || !stakingContract) {
+            setTransactionError('请先连接钱包');
+            return;
+        }
+
+        try {
+            setProcessing(true);
+            setTransactionError(null);
+
+            const amount = parseUnits(mintAmount, DECIMALS);
+            const tx = await stakingContract.createMintTransaction(amount, account.address);
+            
+            await signAndExecute({
+                transaction: tx
+            });
+
+            setMintAmount('');
+            // 重新加载用户信息
+            const stakeInfo = await stakingContract.getUserStakeInfo(account.address);
+            setUserStakeInfo(stakeInfo);
+        } catch (err: any) {
+            console.error('铸造失败:', err);
+            setTransactionError(err.message || ERROR_MESSAGES.TRANSACTION_FAILED);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     if (loading) return <div>加载中...</div>;
     if (error) return <div>错误: {error}</div>;
     if (!account) return <div>请连接钱包</div>;
@@ -151,18 +183,40 @@ export function Staking() {
         <div className="p-6 max-w-lg mx-auto bg-white rounded-xl shadow-md">
             <h2 className="text-2xl font-bold mb-6">质押 FARM 代币</h2>
             
+            {/* 铸造表单 */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">铸造代币</h3>
+                <div className="flex items-center gap-4">
+                    <input
+                        type="number"
+                        value={mintAmount}
+                        onChange={(e) => setMintAmount(e.target.value)}
+                        placeholder="输入铸造数量"
+                        className="flex-1 p-3 border-2 border-gray-300 rounded-lg text-lg font-medium text-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+                        disabled={processing}
+                    />
+                    <button
+                        onClick={handleMint}
+                        disabled={processing || !mintAmount}
+                        className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium text-lg transition-all"
+                    >
+                        {processing ? '处理中...' : '铸造'}
+                    </button>
+                </div>
+            </div>
+
             {/* 质押信息 */}
             {userStakeInfo && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
                     <h3 className="text-lg font-semibold mb-2">您的质押信息</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-gray-600">质押数量</p>
-                            <p className="font-medium">{formatUnits(userStakeInfo.amount, DECIMALS)} FARM</p>
+                            <p className="font-medium text-lg">{formatUnits(userStakeInfo.amount, DECIMALS)} FARM</p>
                         </div>
                         <div>
                             <p className="text-gray-600">可领取奖励</p>
-                            <p className="font-medium">{formatUnits(userStakeInfo.reward, DECIMALS)} FARM</p>
+                            <p className="font-medium text-lg">{formatUnits(userStakeInfo.reward, DECIMALS)} FARM</p>
                         </div>
                     </div>
                 </div>
@@ -170,19 +224,20 @@ export function Staking() {
 
             {/* 质押表单 */}
             <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">质押代币</h3>
                 <div className="flex items-center gap-4">
                     <input
                         type="number"
                         value={stakeAmount}
                         onChange={(e) => setStakeAmount(e.target.value)}
                         placeholder="输入质押数量"
-                        className="flex-1 p-2 border rounded"
+                        className="flex-1 p-3 border-2 border-gray-300 rounded-lg text-lg font-medium text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                         disabled={processing}
                     />
                     <button
                         onClick={handleStake}
                         disabled={processing || !stakeAmount}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-lg transition-all"
                     >
                         {processing ? '处理中...' : '质押'}
                     </button>
@@ -194,14 +249,14 @@ export function Staking() {
                 <button
                     onClick={() => handleUnstake(userStakeInfo?.amount || '0')}
                     disabled={processing || !userStakeInfo?.amount}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium text-lg transition-all"
                 >
                     {processing ? '处理中...' : '解除质押'}
                 </button>
                 <button
                     onClick={handleClaimReward}
                     disabled={processing || !userStakeInfo?.reward}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium text-lg transition-all"
                 >
                     {processing ? '处理中...' : '领取奖励'}
                 </button>
@@ -209,10 +264,13 @@ export function Staking() {
 
             {/* 错误提示 */}
             {transactionError && (
-                <div className="mt-4 p-3 bg-red-100 text-red-700 rounded">
+                <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg font-medium">
                     {transactionError}
                 </div>
             )}
+
+            {/* 交易记录 */}
+            <TransactionHistory />
         </div>
     );
 } 

@@ -1,6 +1,6 @@
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { SuiClient, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
-import { STAKING_PACKAGE_ID, TREASURY_ID, USER_STATE_ID, REWARD_STATE_ID, FARM_TOKEN_TYPE } from '../../lib/constants';
+import { STAKING_PACKAGE_ID, TREASURY_ID, USER_STATE_ID, REWARD_STATE_ID, FARM_TOKEN_TYPE, TREASURY_CAP_ID } from '../../lib/constants';
 
 export class StakingContract {
     constructor(
@@ -39,33 +39,39 @@ export class StakingContract {
     async createStakeTransaction(address: string, amount: bigint): Promise<string> {
         const tx = new TransactionBlock();
         
-        // 获取用户的代币
-        const coins = await this.getFarmTokens(address);
-        if (!coins.data || coins.data.length === 0) {
-            throw new Error('没有找到FARM代币');
+        // 设置 gas 预算
+        tx.setGasBudget(20000000);
+
+        // 获取用户的 FARM 代币
+        const { data: coins, hasNextPage } = await this.client.getCoins({
+            owner: address,
+            coinType: FARM_TOKEN_TYPE
+        });
+        
+        if (!coins || coins.length === 0) {
+            throw new Error('没有找到FARM代币，请先铸造一些代币');
         }
 
-        // 合并所有代币
-        const [primaryCoin, ...mergeCoins] = coins.data;
-        if (mergeCoins.length > 0) {
-            tx.mergeCoins(
-                tx.object(primaryCoin.coinObjectId),
-                mergeCoins.map(coin => tx.object(coin.coinObjectId))
-            );
+        // 找到一个用于质押的代币
+        const stakingCoin = coins[0];
+        const totalBalance = BigInt(stakingCoin.balance);
+
+        if (totalBalance < amount) {
+            throw new Error('FARM代币余额不足');
         }
 
         // 如果金额小于代币总额，需要拆分
-        const totalBalance = BigInt(primaryCoin.balance);
         if (amount < totalBalance) {
-            const [stakingCoin] = tx.splitCoins(tx.object(primaryCoin.coinObjectId), [tx.pure(amount)]);
+            const [splitCoin] = tx.splitCoins(tx.object(stakingCoin.coinObjectId), [tx.pure(amount)]);
             
             tx.moveCall({
                 target: `${STAKING_PACKAGE_ID}::vault::stake`,
                 arguments: [
-                    tx.object(TREASURY_ID),
-                    tx.object(USER_STATE_ID),
-                    tx.object(REWARD_STATE_ID),
-                    stakingCoin
+                    splitCoin,                    // payment
+                    tx.object(USER_STATE_ID),     // userState
+                    tx.object(REWARD_STATE_ID),   // rewardState
+                    tx.object(TREASURY_ID),       // treasury
+                    tx.object('0x6'),             // clock
                 ],
                 typeArguments: [FARM_TOKEN_TYPE]
             });
@@ -73,10 +79,11 @@ export class StakingContract {
             tx.moveCall({
                 target: `${STAKING_PACKAGE_ID}::vault::stake`,
                 arguments: [
-                    tx.object(TREASURY_ID),
-                    tx.object(USER_STATE_ID),
-                    tx.object(REWARD_STATE_ID),
-                    tx.object(primaryCoin.coinObjectId)
+                    tx.object(stakingCoin.coinObjectId), // payment
+                    tx.object(USER_STATE_ID),            // userState
+                    tx.object(REWARD_STATE_ID),          // rewardState
+                    tx.object(TREASURY_ID),              // treasury
+                    tx.object('0x6'),                    // clock
                 ],
                 typeArguments: [FARM_TOKEN_TYPE]
             });
@@ -123,17 +130,44 @@ export class StakingContract {
     // 获取用户质押信息
     async getUserStakeInfo(address: string) {
         try {
-            const objects = await this.client.getOwnedObjects({
-                owner: address,
-                filter: {
-                    StructType: `${STAKING_PACKAGE_ID}::vault::StakeInfo`
-                },
-                options: { showContent: true }
-            });
-            return objects;
+            const userState = await this.getUserState();
+            if (!userState.data?.content) {
+                throw new Error('无法获取用户状态');
+            }
+
+            const content = userState.data.content as {
+                fields: {
+                    balanceOf: {
+                        fields: {
+                            contents: Array<[string, string]>
+                        }
+                    },
+                    rewards: {
+                        fields: {
+                            contents: Array<[string, string]>
+                        }
+                    }
+                }
+            };
+
+            // 从 VecMap 中获取用户数据
+            const balanceOf = content.fields.balanceOf.fields.contents;
+            const rewards = content.fields.rewards.fields.contents;
+
+            // 查找用户的数据
+            const userBalance = balanceOf.find(([addr]) => addr === address)?.[1] || '0';
+            const userReward = rewards.find(([addr]) => addr === address)?.[1] || '0';
+
+            return {
+                amount: userBalance,
+                reward: userReward
+            };
         } catch (error) {
             console.error('获取用户质押信息失败:', error);
-            throw error;
+            return {
+                amount: '0',
+                reward: '0'
+            };
         }
     }
 
@@ -155,5 +189,22 @@ export class StakingContract {
             }
         });
         return rewardState;
+    }
+
+    // 铸造代币
+    async createMintTransaction(amount: bigint, recipient: string): Promise<string> {
+        const tx = new TransactionBlock();
+        
+        tx.moveCall({
+            target: `${STAKING_PACKAGE_ID}::farm::mint`,
+            arguments: [
+                tx.object(TREASURY_CAP_ID), // treasury_cap
+                tx.pure(amount),            // amount
+                tx.pure(recipient)          // recipient
+            ],
+            typeArguments: []
+        });
+
+        return tx.serialize();
     }
 } 
