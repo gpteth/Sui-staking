@@ -158,7 +158,7 @@ const HomeView: FC = () => {
           </p>
           <div className="flex justify-center space-x-4">
             <button className="bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-500 hover:to-cyan-500 text-white px-10 py-5 rounded-full shadow-lg text-xl font-semibold transform hover:scale-105 transition-all">
-              Add Liquidity
+              Stake
             </button>
             <button className="bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white px-10 py-5 rounded-full shadow-lg text-xl font-semibold transform hover:scale-105 transition-all">
               Join Community

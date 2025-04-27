@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { SuiClient } from '@mysten/sui.js/client';
+import { useSuiClientContext } from '@mysten/dapp-kit';
 import { StakingContract } from '../lib/contracts/staking';
 import { LiquidityPoolContract } from '../lib/contracts/liquidity';
-import { RPC_URL } from '../lib/constants';
-import { useSuiClient } from '@mysten/dapp-kit';
 
 export function useContract() {
-    const client = useSuiClient();
+    const { client } = useSuiClientContext();
     const [stakingContract, setStakingContract] = useState<StakingContract | null>(null);
     const [liquidityContract, setLiquidityContract] = useState<LiquidityPoolContract | null>(null);
     const [loading, setLoading] = useState(true);
@@ -36,7 +34,6 @@ export function useContract() {
     }, [client]);
 
     return {
-        client,
         stakingContract,
         liquidityContract,
         loading,

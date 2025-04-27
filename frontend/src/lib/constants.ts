@@ -9,7 +9,7 @@ export const RPC_URL = 'https://fullnode.testnet.sui.io';
 
 // 常量
 export const DECIMALS = 9; // 代币精度
-export const DEFAULT_GAS_BUDGET = 10000; // 默认 gas 预算
+export const DEFAULT_GAS_BUDGET = 50000000; // 默认 gas 预算
 
 // 合约地址
 export const FARM_TOKEN_TYPE = `${STAKING_PACKAGE_ID}::farm::FARM`;
@@ -20,6 +20,9 @@ export const TREASURY_CAP_ID = '0x943cf23bf88f9190d760027181c2670c1d67d60f161b0a
 export const TREASURY_ID = '0xaf2486a36ba954f20ac2214ecb7787c3d37c43022a976225406ad3b58aa3d92b';
 export const USER_STATE_ID = '0x5a1a94bce876bd4d6906b89d841981222ea80b20481a621bbe0263d004403a26';
 export const REWARD_STATE_ID = '0x6e3ec086b184bdd51c094b7e5dd47bbfaeba71b9e4e94c16b6bf6f76eefb7342';
+
+// Sui system objects
+export const SUI_CLOCK_OBJECT_ID = '0x0000000000000000000000000000000000000000000000000000000000000006';
 
 // 错误信息
 export const ERROR_MESSAGES = {
@@ -39,4 +42,7 @@ export const UI_CONFIG = {
     MIN_LIQUIDITY: 1000000, // 最小流动性
     REFRESH_INTERVAL: 10000, // 数据刷新间隔（毫秒）
     MAX_PRICE_IMPACT: 15, // 最大价格影响 15%
-}; 
+};
+
+// 区块浏览器配置
+export const EXPLORER_URL = 'https://suiexplorer.com/txblock/'; 
