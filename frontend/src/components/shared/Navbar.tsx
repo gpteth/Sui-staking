@@ -15,13 +15,13 @@ const NavBar: React.FC = () => {
             onClick={() => navigate("/")}
             className="text-white hover:text-cyan-200 transition-colors"
           >
-
+            首页
           </button>
           <button
             onClick={() => navigate("/staking")}
             className="text-white hover:text-cyan-200 transition-colors"
           >
-
+            质押
           </button>
         </div>
         <div className="flex items-center space-x-4">
